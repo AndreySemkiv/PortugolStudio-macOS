@@ -1,37 +1,74 @@
-# Portugol Studio
-[![Build Status](https://travis-ci.org/UNIVALI-LITE/Portugol-Studio.svg?branch=master)](https://travis-ci.org/UNIVALI-LITE/Portugol-Studio)
-[![Discord](https://img.shields.io/badge/chat-on_discord-4bc51d.svg)](https://discord.gg/fRW7Vq2)
-[![License](https://img.shields.io/badge/License-GPL--3.0-4bc51d.svg)](https://github.com/UNIVALI-LITE/Portugol-Studio/blob/master/LICENSE.md)
+## Suporte moderno ao macOS
 
-O [Portugol Studio](http://lite.acad.univali.br/portugol/) é um ambiente para aprender a programar, voltado para os iniciantes em programação que falam o idioma português. Possui uma sintaxe fácil, diversos exemplos e materiais de apoio à aprendizagem. Também possibilita a criação de jogos e outras aplicações.
+Esta versão contém adaptações para executar o Portugol Studio de forma mais estável em versões atuais do macOS, especialmente em Macs com Apple Silicon.
 
-***
-Os principais recursos do Portugol Studio são:
+### Principais melhorias
 
-* Interface simples e didática
+- Compatibilidade com processadores Apple Silicon ARM64.
+- Atualização do ambiente de compilação para JDK 21.
+- Atualização e modernização da configuração do Gradle.
+- Inclusão de um runtime Java próprio dentro do aplicativo.
+- Correção do classpath usado ao executar programas Portugol.
+- Correção de dependências incompatíveis com versões modernas do Java.
+- Uso da janela nativa do macOS.
+- Botões nativos de fechar, minimizar e maximizar.
+- Suporte ao modo tela cheia e maximização nativa do macOS.
+- Barra de título sincronizada automaticamente com o tema claro ou escuro do sistema.
+- Integração com o menu global do macOS.
+- Associação de arquivos `.por` ao Portugol Studio.
+- Abertura de arquivos Portugol pelo Finder e pelo sistema.
+- Correção do cursor branco no editor de código.
+- Uso do ícone Retina do aplicativo no Dock.
+- Remoção do ícone PNG de baixa resolução que causava desfoque ao minimizar.
+- Geração de aplicativo `.app` para macOS.
+- Geração de instalador `.dmg`.
+- Verificação automática da arquitetura ARM64.
+- Verificação do bundle, metadados, runtime e ícones do aplicativo.
+- Inclusão de testes automatizados para a aparência do macOS e do editor.
 
-* Sistema de ajuda e material de apoio ao aprendizado
+### Compatibilidade
 
-* Atualização automática
+- macOS 11 Big Sur ou superior.
+- Macs com Apple Silicon: M1, M2, M3, M4 ou posteriores.
+- Testado no macOS 27 em arquitetura ARM64.
 
-* Árvore estrutural do programa
+Esta build não é destinada a Macs Intel.
 
-* Editor de código fonte com recursos avançados
+### Como executar
 
-* Depurador interativo
+1. Baixe o arquivo `.dmg` na seção de Releases.
+2. Abra o instalador e arraste o `Portugol Studio.app` para a pasta `Applications`.
+3. Execute o aplicativo normalmente.
 
-* Suporte à bibliotecas e desenvolvimento de jogos
+Como a build não é assinada nem notarizada pela Apple, pode ser necessário clicar com o botão direito no aplicativo, selecionar **Abrir** e confirmar a execução na primeira inicialização.
 
-O **Portugol Studio** é resultado de um esforço continuado que já envolveu vários artigos científicos, além de 6 trabalhos de conclusão de curso e uma dissertação de mestrado em computação. A ferramenta possui mais de 90 mil downloads e tem sido utilizada em diversas universidades e institutos de tecnologia no Brasil e em outros países de idioma português.
+### Como gerar uma build para macOS
 
-O **Portugol Studio** é desenvolvido e mantido pelo [Laboratório de Inovação Tecnológica na Educação](http://lite.acad.univali.br/) da [UNIVALI](https://www.univali.br/Paginas/default.aspx). Conheça mais sobre o Portugol Studio em nosso [site oficial](http://lite.acad.univali.br/portugol/) e na [página da Wikipedia](https://pt.wikipedia.org/wiki/Portugol_Studio).
+É necessário utilizar um Mac Apple Silicon com JDK 21 instalado.
 
-***
-## Contribuindo com o Portugol Studio
-Se você é um desenvolvedor e está interessado em contribuir no desenvolvimento do  **Portugol Studio**, acesse a [Wiki](https://github.com/UNIVALI-LITE/Portugol-Studio/wiki/Contribuindo-com-o-projeto) do projeto no GitHub. Lá você encontrará um guia passo a passo de como obter o código fonte do Portugol Studio, modificá-lo e executá-lo.
+```bash
+./gradlew clean build verifyMacApp macDmg
+```
 
-## Portugol pela web
+Os arquivos gerados estarão em:
 
-Caso queira utilizar a código Portugol em sites ou slides uma versão do *highlight.js* para Portugol está disponível em [highlight.js-portugol](https://alissonsteffens.github.io/highlight.js-portugol/)
+```text
+build/macos/output/
+```
 
+A aplicação ficará disponível como:
+
+```text
+build/macos/output/Portugol Studio.app
+```
+
+E o instalador será gerado como:
+
+```text
+build/macos/output/Portugol Studio-2.7.5.dmg
+```
+
+### Observações
+
+Esta adaptação mantém a interface e a linguagem Portugol existentes, concentrando as mudanças na compatibilidade do aplicativo desktop, no editor, no empacotamento e na integração com o macOS.
  
