@@ -1192,7 +1192,7 @@ public final class AbaAjuda extends Aba implements PropertyChangeListener
         painelTitulo = new javax.swing.JPanel();
         jLabel2 = new javax.swing.JLabel();
         scrollConteudo = new javax.swing.JScrollPane();
-        conteudo = new org.fit.cssbox.swingbox.BrowserPane();
+        conteudo = new javax.swing.JEditorPane();
 
         jScrollPane1.setViewportView(jEditorPane1);
 
@@ -1254,6 +1254,8 @@ public final class AbaAjuda extends Aba implements PropertyChangeListener
 
         divisorLayout.setLeftComponent(painelArvore);
 
+        conteudo.setEditable(false);
+        conteudo.setContentType("text/html");
         conteudo.setOpaque(false);
         scrollConteudo.setViewportView(conteudo);
 
@@ -1266,7 +1268,7 @@ public final class AbaAjuda extends Aba implements PropertyChangeListener
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JTree arvore;
-    private org.fit.cssbox.swingbox.BrowserPane conteudo;
+    private javax.swing.JEditorPane conteudo;
     private javax.swing.JSplitPane divisorLayout;
     private javax.swing.JLabel iconeCarregamento;
     private javax.swing.JEditorPane jEditorPane1;

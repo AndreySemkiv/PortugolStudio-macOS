@@ -32,6 +32,12 @@ public final class Caminhos
 
     public static File obterDiretorioInstalacao()
     {
+        String diretorioConfigurado = System.getProperty("portugol.home");
+        if (diretorioConfigurado != null && !diretorioConfigurado.trim().isEmpty())
+        {
+            return new File(diretorioConfigurado).getAbsoluteFile();
+        }
+
         if (!rodandoEmDesenvolvimento())
         {
             try
@@ -39,7 +45,7 @@ public final class Caminhos
                 CodeSource localCodigo = Caminhos.class.getProtectionDomain().getCodeSource();
                 URL local = localCodigo.getLocation();
 
-                return new File(URI.create(local.toExternalForm())).getParentFile().getParentFile();
+                return new File(URI.create(local.toExternalForm())).getParentFile();
             }
             catch(Exception ex)
             {
@@ -52,6 +58,12 @@ public final class Caminhos
 
     public static String obterCaminhoExecutavelJavac()
     {
+        File javacDoRuntime = executavelDoRuntime("javac");
+        if (javacDoRuntime.isFile() && javacDoRuntime.canExecute())
+        {
+            return extrairCaminho(javacDoRuntime);
+        }
+
         if (Caminhos.rodandoEmDesenvolvimento())
         {
             if (Caminhos.rodandoNoWindows())
@@ -103,6 +115,12 @@ public final class Caminhos
     
     public static String obterCaminhoExecutavelJava()
     {
+        File javaDoRuntime = executavelDoRuntime("java");
+        if (javaDoRuntime.isFile() && javaDoRuntime.canExecute())
+        {
+            return extrairCaminho(javaDoRuntime);
+        }
+
         if (Caminhos.rodandoEmDesenvolvimento())
         {
             if (Caminhos.rodandoNoWindows())
@@ -154,11 +172,15 @@ public final class Caminhos
     
     public static boolean rodandoEmDesenvolvimento()
     {
-        String path = new File(".").getAbsolutePath();
-                      
-        //Mac - quando está instalado o executável do PS fica em /Applications/Portugol Studio.app/Contents/MacOSx
-        return (!path.contains("Portugol Studio.app")) && (path.endsWith("ide\\.") || path.endsWith("ide/."));
+        URL local = Caminhos.class.getProtectionDomain().getCodeSource().getLocation();
+        return new File(URI.create(local.toExternalForm())).isDirectory();
      }
+
+    private static File executavelDoRuntime(String nome)
+    {
+        String extensao = rodandoNoWindows() ? ".exe" : "";
+        return new File(new File(System.getProperty("java.home"), "bin"), nome + extensao);
+    }
 
     public static boolean rodandoNoWindows()
     {

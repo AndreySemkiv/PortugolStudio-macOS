@@ -140,6 +140,7 @@ public abstract class Simbolo
      * pos isso nas versões futuras este método será removido da classe base e
      * utilizado somente nas classes em que for necessário.
      */
+    @Deprecated
     public boolean constante()
     {
         return constante;

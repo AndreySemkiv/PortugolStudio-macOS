@@ -77,6 +77,13 @@ public final class Caminhos
     
     public static String obterCaminhoExecutavelJavac()
     {
+        String extensao = rodandoNoWindows() ? ".exe" : "";
+        File javacDoRuntime = new File(new File(System.getProperty("java.home"), "bin"), "javac" + extensao);
+        if (javacDoRuntime.isFile() && javacDoRuntime.canExecute())
+        {
+            return extrairCaminho(javacDoRuntime);
+        }
+
         if (Caminhos.rodandoEmDesenvolvimento())
         {
             if (rodandoNoWindows())

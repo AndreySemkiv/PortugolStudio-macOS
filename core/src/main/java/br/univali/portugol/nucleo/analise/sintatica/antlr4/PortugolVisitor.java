@@ -1,4 +1,4 @@
-// Generated from Portugol.g4 by ANTLR 4.7.2
+// Generated from Portugol.g4 by ANTLR 4.13.2
 package br.univali.portugol.nucleo.analise.sintatica.antlr4;
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 

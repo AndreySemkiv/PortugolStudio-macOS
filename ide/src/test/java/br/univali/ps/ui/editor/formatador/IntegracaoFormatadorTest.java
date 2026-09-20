@@ -29,6 +29,10 @@ import br.univali.ps.ui.editor.Utils;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CodingErrorAction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -98,7 +102,7 @@ public class IntegracaoFormatadorTest
 
             if (exemplo.getName().endsWith(".por")) {
                 System.out.println("Testando " + exemplo.getName() + " ...");
-                String codigoPortugol = new String(Files.readAllBytes(Paths.get(exemplo.toURI())));
+                String codigoPortugol = new String(Files.readAllBytes(Paths.get(exemplo.toURI())), StandardCharsets.UTF_8);
                 String codigoPortugolFormatado = FormatadorCodigo.formata(codigoPortugol);
 
                 long seed = System.currentTimeMillis();
@@ -123,7 +127,7 @@ public class IntegracaoFormatadorTest
         } else {
             if (ajuda.getName().endsWith(".por")) {
                 System.out.println("Testando "+ajuda.getParent()+" "+ ajuda.getName() + " ...");
-                String codigoPortugol = new String(Files.readAllBytes(Paths.get(ajuda.toURI())), "ISO-8859-1");
+                String codigoPortugol = lerTextoLegado(ajuda);
                 
                 String nomeCompleto = getClass().getCanonicalName();
                 int indicePonto = nomeCompleto.lastIndexOf(".");
@@ -147,6 +151,22 @@ public class IntegracaoFormatadorTest
                 System.out.println(ajuda.getName() + " testado com sucesso!");
                 System.out.println();
             }
+        }
+    }
+
+    private String lerTextoLegado(File arquivo) throws IOException
+    {
+        byte[] conteudo = Files.readAllBytes(Paths.get(arquivo.toURI()));
+        try
+        {
+            return StandardCharsets.UTF_8.newDecoder()
+                    .onMalformedInput(CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(CodingErrorAction.REPORT)
+                    .decode(ByteBuffer.wrap(conteudo)).toString();
+        }
+        catch (CharacterCodingException ex)
+        {
+            return new String(conteudo, StandardCharsets.ISO_8859_1);
         }
     }
 

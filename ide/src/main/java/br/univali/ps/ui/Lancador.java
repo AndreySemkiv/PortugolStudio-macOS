@@ -7,6 +7,7 @@ import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 import br.univali.ps.nucleo.InstanciaPortugolStudio;
+import br.univali.ps.nucleo.Caminhos;
 import br.univali.ps.nucleo.MutexImpl;
 import br.univali.ps.nucleo.NamedThreadFactory;
 import br.univali.ps.nucleo.PortugolStudio;
@@ -16,6 +17,9 @@ import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.net.ServerSocket;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -32,6 +36,8 @@ import java.awt.MouseInfo;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.event.MouseEvent;
+import java.awt.Desktop;
+import java.util.Collections;
 
 /**
  * @author lite
@@ -50,6 +56,7 @@ public class Lancador {
     
     private final ComponentResizer resizer = new ComponentResizer();
     private static Mutex mutex;
+    private static final List<File> arquivosPendentesMacOS = Collections.synchronizedList(new ArrayList<>());
     private final ExecutorService servico = Executors.newCachedThreadPool(new NamedThreadFactory("Portugol-Studio (Thread principal)"));
 
     
@@ -64,18 +71,44 @@ public class Lancador {
     }
 
     public static void main(String argumentos[]) 
-    {        
+    {
         setarPropriedadesDoSistema();
+        registrarIntegracaoMacOS();
         Lancador.getInstance();
         verificadorDeInstancias(argumentos);
         Lancador.getInstance().start(argumentos);    	
     }
     
-    private static void setarPropriedadesDoSistema()
+    static void setarPropriedadesDoSistema()
     {
         System.setProperty("apple.laf.useScreenMenuBar", "true");
+        System.setProperty("apple.awt.application.appearance", "system");
         System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Portugol Studio");
         System.setProperty("apple.eawt.quitStrategy", "CLOSE_ALL_WINDOWS");
+    }
+
+    private static void registrarIntegracaoMacOS()
+    {
+        if (!Desktop.isDesktopSupported())
+        {
+            return;
+        }
+
+        Desktop desktop = Desktop.getDesktop();
+        if (desktop.isSupported(Desktop.Action.APP_OPEN_FILE))
+        {
+            desktop.setOpenFileHandler(evento -> {
+                List<File> arquivos = new ArrayList<>(evento.getFiles());
+                if (PortugolStudio.isPortugolCarregado())
+                {
+                    PortugolStudio.getInstancia().getTelaPrincipal().abrirArquivosCodigoFonte(arquivos);
+                }
+                else
+                {
+                    arquivosPendentesMacOS.addAll(arquivos);
+                }
+            });
+        }
     }
     
     private static void verificadorDeInstancias(String parametros[]) {
@@ -157,11 +190,22 @@ public class Lancador {
 
     public boolean isMaximazed() 
     {
+        if (usarJanelaNativaMacOS() && frame != null)
+        {
+            return (frame.getExtendedState() & JFrame.MAXIMIZED_BOTH) == JFrame.MAXIMIZED_BOTH;
+        }
         return maximazed;
     }
 
     public void maximize(boolean maximaze) 
     {
+        if (usarJanelaNativaMacOS())
+        {
+            frame.setExtendedState(maximaze ? JFrame.MAXIMIZED_BOTH : JFrame.NORMAL);
+            maximazed = maximaze;
+            return;
+        }
+
         GraphicsDevice monitorAtual = MouseInfo.getPointerInfo().getDevice();
         
         if(maximaze){
@@ -259,8 +303,11 @@ public class Lancador {
             SwingUtilities.invokeAndWait(() ->
             {
                 Thread.currentThread().setName("Portugol-Studio (Swing)");
-                frame = new JFrame(); // a instância do JFrame deve ser criada na thread do Swing
-                resizer.registerComponent(frame);
+                frame = new JFrame("Portugol Studio"); // a instância do JFrame deve ser criada na thread do Swing
+                if (!usarJanelaNativaMacOS())
+                {
+                    resizer.registerComponent(frame);
+                }
                 
 //                ColetorInteracao coletor = ColetorInteracao.getInstancia();
 //                coletor.inspeciona(frame);
@@ -274,19 +321,36 @@ public class Lancador {
 
         LOGGER.log(Level.INFO, "Iniciando PS com {0} argumentos", argumentos.length);
         PortugolStudio.getInstancia().iniciarNovaInstancia(argumentos);
-                    
 
-        /* Create and display the form */
-        SwingUtilities.invokeLater(() -> {
-            
-            try {
-                URL resource = getClass().getResource("/br/univali/ps/ui/icones/Dark/grande/light-bulb.png");
-                frame.setIconImage(ImageIO.read(resource));
-            } catch (IOException ex) {
-                Logger.getLogger(TelaPrincipal.class.getName()).log(Level.SEVERE, null, ex);
+        synchronized (arquivosPendentesMacOS)
+        {
+            if (!arquivosPendentesMacOS.isEmpty())
+            {
+                PortugolStudio.getInstancia().getTelaPrincipal().abrirArquivosCodigoFonte(new ArrayList<>(arquivosPendentesMacOS));
+                arquivosPendentesMacOS.clear();
             }
-            
-        });
+        }
+
+
+        /*
+         * No macOS, o ícone do bundle .app contém as escalas adequadas para o
+         * Dock e para telas Retina. Sobrescrevê-lo com o PNG de 32 px usado
+         * pelas outras plataformas deixa o ícone minimizado borrado.
+         */
+        if (!usarJanelaNativaMacOS())
+        {
+            SwingUtilities.invokeLater(() -> {
+                try
+                {
+                    URL resource = getClass().getResource("/br/univali/ps/ui/icones/Dark/grande/light-bulb.png");
+                    frame.setIconImage(ImageIO.read(resource));
+                }
+                catch (IOException ex)
+                {
+                    Logger.getLogger(TelaPrincipal.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            });
+        }
     }
     
     private static void inicializarMecanismoLog()
@@ -295,6 +359,8 @@ public class Lancador {
 
         try
         {
+            Path diretorioConfiguracao = Paths.get(System.getProperty("user.home"), ".portugol");
+            Files.createDirectories(diretorioConfiguracao);
             LogManager.getLogManager().readConfiguration(inputStream);
         }
         catch (final IOException excecao)
@@ -322,6 +388,11 @@ public class Lancador {
     
     public GraphicsDevice getMonitorPrincipal() {
         return monitorPrincipal;
+    }
+
+    public static boolean usarJanelaNativaMacOS()
+    {
+        return Caminhos.rodandoNoMac();
     }
     
     private static Rectangle configurarMaximizar(){

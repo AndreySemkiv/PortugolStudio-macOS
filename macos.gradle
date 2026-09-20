@@ -1,0 +1,210 @@
+import org.gradle.internal.os.OperatingSystem
+import org.gradle.api.file.FileSystemOperations
+import org.gradle.process.ExecOperations
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.util.UUID
+
+def macBuildDir = layout.buildDirectory.dir('macos')
+def macInputDir = layout.buildDirectory.dir('macos/input')
+def macOutputDir = layout.buildDirectory.dir('macos/output')
+def macRuntimeDir = layout.buildDirectory.dir('macos/runtime')
+def macDmgStagingDir = layout.buildDirectory.dir('macos/dmg-staging')
+def jpackageExecutable = providers.provider {
+    new File(System.getProperty('java.home'), 'bin/jpackage').absolutePath
+}
+def execOperations = services.get(ExecOperations)
+def fileSystemOperations = services.get(FileSystemOperations)
+def appVersion = version.toString()
+def appIcon = rootProject.file('installer/arquivos/osx/icones/portugol-studio.icns').absolutePath
+def fileAssociations = rootProject.file('installer/macos/portugol-file-association.properties').absolutePath
+def signingIdentityProvider = providers.environmentVariable('MAC_SIGNING_IDENTITY')
+def signingKeychainProvider = providers.environmentVariable('MAC_SIGNING_KEYCHAIN')
+def dmgFile = macOutputDir.map { it.file("Portugol Studio-${appVersion}.dmg") }
+
+tasks.register('prepareMacPackageInput', Sync) {
+    group = 'distribution'
+    description = 'Stages the application and assets for jpackage.'
+    dependsOn project(':portugol-ide').tasks.named('jar')
+
+    into macInputDir
+
+    from(project(':portugol-ide').tasks.named('jar').flatMap { it.archiveFile }) {
+        rename { 'portugol-studio.jar' }
+    }
+    from(project(':portugol-ide').configurations.runtimeClasspath) {
+        into 'lib'
+    }
+    from(project(':portugol-ide').file('src/main/assets'))
+}
+
+tasks.register('cleanMacPackage', Delete) {
+    delete macBuildDir
+}
+
+tasks.register('createMacRuntime', Exec) {
+    group = 'distribution'
+    description = 'Creates an ARM64 runtime containing both java and javac.'
+    onlyIf { OperatingSystem.current().isMacOsX() }
+    doFirst {
+        fileSystemOperations.delete { delete macRuntimeDir }
+        commandLine new File(System.getProperty('java.home'), 'bin/jlink').absolutePath,
+                '--add-modules', 'java.se,jdk.compiler,jdk.crypto.ec,jdk.unsupported',
+                '--strip-debug',
+                '--no-header-files',
+                '--no-man-pages',
+                '--compress=zip-6',
+                '--output', macRuntimeDir.get().asFile.absolutePath
+    }
+}
+
+def configureJpackage = { Exec task, String packageType ->
+    // jpackage refuses to overwrite an existing app, so each invocation gets
+    // an isolated destination (also safe when multiple packaging tasks run).
+    def nativeOutputDir = new File(task.temporaryDir, "native-${UUID.randomUUID()}")
+    task.group = 'distribution'
+    task.dependsOn tasks.named('prepareMacPackageInput'), tasks.named('createMacRuntime')
+    task.onlyIf {
+        if (!OperatingSystem.current().isMacOsX()) {
+            logger.lifecycle('macOS packaging is only available on macOS.')
+            return false
+        }
+        true
+    }
+    task.doFirst {
+        fileSystemOperations.delete {
+            delete macOutputDir
+        }
+        nativeOutputDir.mkdirs()
+        macOutputDir.get().asFile.mkdirs()
+        execOperations.exec {
+            commandLine 'xattr', '-cr', macInputDir.get().asFile.absolutePath
+            ignoreExitValue = true
+        }
+        def arguments = [
+            '--type', packageType,
+            '--dest', nativeOutputDir.absolutePath,
+            '--name', 'Portugol Studio',
+            '--app-version', appVersion,
+            '--vendor', 'LITE - UNIVALI',
+            '--copyright', 'Copyright © LITE - UNIVALI, 2009-2026',
+            '--input', macInputDir.get().asFile.absolutePath,
+            '--main-jar', 'portugol-studio.jar',
+            '--main-class', 'br.univali.ps.ui.Lancador',
+            '--icon', appIcon,
+            '--file-associations', fileAssociations,
+            '--mac-package-identifier', 'br.univali.portugol.studio',
+            '--mac-package-name', 'Portugol Studio',
+            '--runtime-image', macRuntimeDir.get().asFile.absolutePath,
+            '--java-options', '-Xms64m',
+            '--java-options', '-Xmx768m',
+            '--java-options', '-Dfile.encoding=UTF-8',
+            '--java-options', '-Dapple.laf.useScreenMenuBar=true',
+            '--java-options', '-Dapple.awt.application.appearance=system',
+            // WebLaF 1.29 embeds an old XStream release. These narrowly scoped
+            // opens preserve its style deserialization on JDK 17+.
+            '--java-options', '--add-opens=java.base/java.util=ALL-UNNAMED',
+            '--java-options', '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+            '--java-options', '--add-opens=java.base/java.text=ALL-UNNAMED',
+            '--java-options', '--add-opens=java.desktop/java.awt=ALL-UNNAMED',
+            '--java-options', '--add-opens=java.desktop/java.awt.font=ALL-UNNAMED',
+            '--java-options', '--add-opens=java.desktop/javax.swing=ALL-UNNAMED',
+            '--java-options', '--add-opens=java.desktop/javax.swing.table=ALL-UNNAMED',
+            '--java-options', '--add-opens=java.desktop/javax.swing.tree=ALL-UNNAMED'
+        ]
+
+        def signingIdentity = signingIdentityProvider.orNull
+        if (signingIdentity) {
+            arguments.addAll([
+                '--mac-sign',
+                '--mac-signing-key-user-name', signingIdentity,
+                '--mac-signing-keychain', signingKeychainProvider.getOrElse('')
+            ])
+            if (!signingKeychainProvider.isPresent()) {
+                arguments.removeAll(['--mac-signing-keychain', ''])
+            }
+        }
+
+        commandLine jpackageExecutable.get(), *arguments
+        environment 'COPYFILE_DISABLE', '1'
+    }
+    task.doLast {
+        execOperations.exec {
+            commandLine 'cp', '-a', "${nativeOutputDir.absolutePath}/.", macOutputDir.get().asFile.absolutePath
+        }
+        execOperations.exec {
+            commandLine 'xattr', '-cr', macOutputDir.get().asFile.absolutePath
+            ignoreExitValue = true
+        }
+    }
+}
+
+tasks.register('macAppImage', Exec) { task ->
+    description = 'Builds an Apple Silicon .app image with an embedded JDK runtime.'
+    configureJpackage(task, 'app-image')
+}
+
+tasks.register('cleanMacDmgStaging', Delete) {
+    delete macDmgStagingDir
+}
+
+tasks.register('prepareMacDmg', Exec) {
+    group = 'distribution'
+    description = 'Stages the application and the Applications shortcut for the DMG.'
+    dependsOn tasks.named('macAppImage'), tasks.named('cleanMacDmgStaging')
+    onlyIf { OperatingSystem.current().isMacOsX() }
+    doFirst {
+        def staging = macDmgStagingDir.get().asFile
+        staging.mkdirs()
+        commandLine 'ditto',
+                macOutputDir.get().file('Portugol Studio.app').asFile.absolutePath,
+                new File(staging, 'Portugol Studio.app').absolutePath
+    }
+    doLast {
+        def applicationsLink = macDmgStagingDir.get().file('Applications').asFile.toPath()
+        Files.deleteIfExists(applicationsLink)
+        Files.createSymbolicLink(applicationsLink, Paths.get('/Applications'))
+    }
+}
+
+tasks.register('macDmg', Exec) {
+    group = 'distribution'
+    description = 'Builds a macOS DMG from the validated app image.'
+    dependsOn tasks.named('prepareMacDmg')
+    onlyIf { OperatingSystem.current().isMacOsX() }
+    doFirst {
+        fileSystemOperations.delete { delete dmgFile }
+        commandLine 'diskutil', 'image', 'create', 'from',
+                '--format', 'UDZO',
+                '--volumeName', 'Portugol Studio',
+                macDmgStagingDir.get().asFile.absolutePath,
+                dmgFile.get().asFile.absolutePath
+    }
+    outputs.file(dmgFile)
+    finalizedBy tasks.named('signMacDmg')
+}
+
+tasks.register('signMacDmg', Exec) {
+    group = 'distribution'
+    description = 'Signs the DMG when MAC_SIGNING_IDENTITY is configured.'
+    onlyIf { signingIdentityProvider.isPresent() }
+    doFirst {
+        def arguments = ['codesign', '--force', '--sign', signingIdentityProvider.get(), '--timestamp']
+        if (signingKeychainProvider.isPresent()) {
+            arguments.addAll(['--keychain', signingKeychainProvider.get()])
+        }
+        arguments.add(dmgFile.get().asFile.absolutePath)
+        commandLine arguments
+    }
+}
+
+tasks.register('verifyMacApp', Exec) {
+    group = 'verification'
+    description = 'Verifies architecture, bundle metadata and code signature of the generated app.'
+    dependsOn tasks.named('macAppImage')
+    onlyIf { OperatingSystem.current().isMacOsX() }
+    doFirst {
+        def app = macOutputDir.get().file('Portugol Studio.app').asFile
+        commandLine rootProject.file('installer/macos/verify-app.sh').absolutePath, app.absolutePath
+    }
+}

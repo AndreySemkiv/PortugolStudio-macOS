@@ -1,18 +1,3 @@
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'org.codehaus.groovy:groovy-all:2.4.12'
-    }
-}
-
-plugins {
-    id 'de.undercouch.download' version '3.4.3'
-}
-
-import org.gradle.api.artifacts.*
-
 ext {
     
     versionInfo = new Properties()
@@ -31,51 +16,46 @@ group = versionInfo.mavenGroupId
 
 version = versionString
 
+// macOS File Provider/iCloud can duplicate files while javac is writing inside
+// Documents. Allow builds to be redirected to a local temporary volume.
+def externalBuildRoot = providers.gradleProperty('portugolBuildRoot')
+        .orElse(providers.environmentVariable('PORTUGOL_BUILD_ROOT'))
+        .orNull
+
+if (externalBuildRoot) {
+    layout.buildDirectory = file("${externalBuildRoot}/root")
+}
+
 apply plugin: 'base'
 
 subprojects {
+    if (externalBuildRoot) {
+        layout.buildDirectory = file("${externalBuildRoot}/${name}")
+    }
     
     apply from: rootProject.file('projects.gradle')
 }
 
-task mergedJavadoc(type: Javadoc, description: 'Creates Javadoc from all the projects.') {
+tasks.register('mergedJavadoc', Javadoc) {
+    description = 'Creates Javadoc from all the projects.'
     title = 'All modules'
-    destinationDir = new File(project.buildDir, 'merged-javadoc')
+    destinationDir = layout.buildDirectory.dir('merged-javadoc').get().asFile
 
     // Note: The closures below are executed lazily.
     source {
        subprojects*.sourceSets*.main*.allSource
     }
-    classpath.from {
-        subprojects*.configurations*.compile*.copyRecursive({ !(it instanceof ProjectDependency); })*.resolve()
-    }
+    classpath.from(subprojects.collect { it.sourceSets.main.compileClasspath })
 }
 
 
 
-task cleanAll(){
-    subprojects.each {
-        it.afterEvaluate {
-            def cleanTask = it.tasks.findByName('clean')
-            if (cleanTask) {
-                dependsOn(cleanTask)
-            }
-        }
-    }
+tasks.named('clean') {
+    dependsOn(subprojects.collect { it.tasks.named('clean') })
 }
 
-task buildAll(){
-    subprojects.each {
-        it.afterEvaluate {
-            def buildTask = it.tasks.findByName('build')
-            if (buildTask) {
-                dependsOn(buildTask)
-            }
-        }
-    }
+tasks.named('build') {
+    dependsOn(subprojects.collect { it.tasks.named('build') })
 }
 
-apply from: rootProject.file('dist.gradle')
-
-clean.dependsOn cleanAll
-build.dependsOn buildAll 
+apply from: rootProject.file('macos.gradle')

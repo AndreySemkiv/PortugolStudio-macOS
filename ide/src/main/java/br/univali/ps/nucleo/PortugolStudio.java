@@ -410,7 +410,7 @@ public final class PortugolStudio
                 telaAlertas.setVisible(true);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.log(Level.WARNING, "Alertas online indisponíveis: {0}", e.getMessage());
         }
     }
 
@@ -905,8 +905,13 @@ public final class PortugolStudio
                 public void run()
                 {
                     
-                    Lancador.getInstance().getJFrame().setUndecorated(true);
+                    boolean janelaNativaMacOS = Lancador.usarJanelaNativaMacOS();
+                    Lancador.getInstance().getJFrame().setUndecorated(!janelaNativaMacOS);
                     outSidePanel = new OutsidePanel();
+                    if (janelaNativaMacOS)
+                    {
+                        outSidePanel.usarDecoracaoNativaMacOS();
+                    }
                     Lancador.getInstance().getJFrame().add(outSidePanel);
                     telaPrincipal = outSidePanel.getTelaPrincipal();
                     telaPrincipal.setArquivosIniciais(arquivosIniciais);

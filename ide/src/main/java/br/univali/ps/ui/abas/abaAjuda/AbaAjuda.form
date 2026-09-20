@@ -232,8 +232,10 @@
 
               <Layout class="org.netbeans.modules.form.compat2.layouts.support.JScrollPaneSupportLayout"/>
               <SubComponents>
-                <Component class="org.fit.cssbox.swingbox.BrowserPane" name="conteudo">
+                <Component class="javax.swing.JEditorPane" name="conteudo">
                   <Properties>
+                    <Property name="editable" type="boolean" value="false"/>
+                    <Property name="contentType" type="java.lang.String" value="text/html"/>
                     <Property name="opaque" type="boolean" value="false"/>
                   </Properties>
                 </Component>

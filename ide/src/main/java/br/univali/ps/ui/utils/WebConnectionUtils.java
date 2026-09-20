@@ -18,6 +18,8 @@ import java.nio.charset.Charset;
  * @author LITE
  */
 public class WebConnectionUtils {
+    private static final int TIMEOUT_MILISSEGUNDOS = 5000;
+
     public static void abrirSite(String endereco){
         try {
             java.awt.Desktop.getDesktop().browse(java.net.URI.create(endereco));
@@ -30,6 +32,8 @@ public class WebConnectionUtils {
     public static String getString(String endereco) throws MalformedURLException, IOException
     {
         URLConnection connection = new URL(endereco).openConnection();
+        connection.setConnectTimeout(TIMEOUT_MILISSEGUNDOS);
+        connection.setReadTimeout(TIMEOUT_MILISSEGUNDOS);
         connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.95 Safari/537.11");
         connection.connect();
         InputStream is = connection.getInputStream();
@@ -44,6 +48,8 @@ public class WebConnectionUtils {
       URL url = new URL(urlToRead);
       HttpURLConnection conn = (HttpURLConnection) url.openConnection();
       conn.setRequestMethod("GET");
+      conn.setConnectTimeout(TIMEOUT_MILISSEGUNDOS);
+      conn.setReadTimeout(TIMEOUT_MILISSEGUNDOS);
       BufferedReader rd = new BufferedReader(new InputStreamReader(conn.getInputStream()));
       String line;
       while ((line = rd.readLine()) != null) {

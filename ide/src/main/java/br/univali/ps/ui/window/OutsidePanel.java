@@ -5,6 +5,7 @@ import br.univali.ps.ui.telas.TelaPrincipal;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import javax.swing.SwingUtilities;
+import javax.swing.BorderFactory;
 import javax.swing.border.LineBorder;
 
 /**
@@ -37,6 +38,12 @@ public class OutsidePanel extends javax.swing.JPanel
             }
             
         });
+    }
+
+    public void usarDecoracaoNativaMacOS()
+    {
+        borderPanel1.setVisible(false);
+        setBorder(BorderFactory.createEmptyBorder());
     }
 
     // necessário para corrigir a issue #212 - ver a 2ª reposta em https://stackoverflow.com/questions/852631/java-swing-how-to-show-a-panel-on-top-of-another-panel

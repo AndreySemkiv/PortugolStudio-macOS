@@ -2,6 +2,7 @@ package br.univali.ps.ui.telas;
 
 import br.univali.ps.dominio.PortugolDocumento;
 import br.univali.ps.nucleo.Configuracoes;
+import br.univali.ps.nucleo.Caminhos;
 import br.univali.ps.nucleo.PSAnalytics;
 import br.univali.ps.nucleo.PortugolStudio;
 import br.univali.ps.ui.Lancador;
@@ -65,6 +66,14 @@ public class TelaPrincipal extends javax.swing.JPanel
         criaAbas();
         configurarCores();
         instalarObservadores();
+        if (!Caminhos.rodandoNoMac())
+        {
+            instalarGestosJanelaSemDecoracao();
+        }
+    }
+
+    private void instalarGestosJanelaSemDecoracao()
+    {
         addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent me) {

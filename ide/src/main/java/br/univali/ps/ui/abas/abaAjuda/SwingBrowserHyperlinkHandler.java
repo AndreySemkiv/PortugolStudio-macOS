@@ -41,10 +41,9 @@ import javax.swing.JOptionPane;
 import javax.swing.JTree;
 import javax.swing.SwingUtilities;
 import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
-
-import org.fit.cssbox.swingbox.util.DefaultHyperlinkHandler;
 
 /**
  * This hyperlink handler implements the demo browser behaviour when a link is
@@ -52,7 +51,7 @@ import org.fit.cssbox.swingbox.util.DefaultHyperlinkHandler;
  *
  * @author burgetr
  */
-public class SwingBrowserHyperlinkHandler extends DefaultHyperlinkHandler
+public class SwingBrowserHyperlinkHandler implements HyperlinkListener
 {
 
     private final Ajuda ajuda;
@@ -88,6 +87,7 @@ public class SwingBrowserHyperlinkHandler extends DefaultHyperlinkHandler
                         throw new TipoUrlInvalidoException(tipoArquivo);
                 }
             case "http":
+            case "https":
                 return Tipo.HTTPBROWSER;
             default:
                 throw new TipoUrlInvalidoException(protocol);
@@ -152,8 +152,7 @@ public class SwingBrowserHyperlinkHandler extends DefaultHyperlinkHandler
         }
     }
 
-    @Override
-    protected void loadPage(JEditorPane pane, HyperlinkEvent evt)
+    private void loadPage(JEditorPane pane, HyperlinkEvent evt)
     {
         try
         {
@@ -177,10 +176,10 @@ public class SwingBrowserHyperlinkHandler extends DefaultHyperlinkHandler
 
     private TreePath localizarTopicoNaArvore(DefaultMutableTreeNode raiz, Topico topico)
     {
-        Enumeration<DefaultMutableTreeNode> e = raiz.depthFirstEnumeration();
+        Enumeration<?> e = raiz.depthFirstEnumeration();
         while (e.hasMoreElements())
         {
-            DefaultMutableTreeNode no = e.nextElement();
+            DefaultMutableTreeNode no = (DefaultMutableTreeNode) e.nextElement();
             if (no.getUserObject().equals(topico))
             {
                 return new TreePath(no.getPath());

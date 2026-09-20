@@ -147,7 +147,8 @@ public class CarrosselCursos extends JPanel {
             try {
                 carregaCursos(getCursosJson());
             } catch (Exception ex) {
-                LOGGER.log(Level.SEVERE, null, ex);
+                LOGGER.log(Level.WARNING, "Cursos recomendados indisponíveis: {0}", ex.getMessage());
+                setVisible(false);
             }
         });
 

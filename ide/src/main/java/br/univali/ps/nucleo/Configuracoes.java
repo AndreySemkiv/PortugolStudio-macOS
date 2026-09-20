@@ -64,7 +64,7 @@ public final class Configuracoes
     private final File diretorioCompilacao = new File(diretorioTemporario, "compilacao");
     private final File diretorioPlugins = new File(diretorioInstalacao, "plugins");
     private final File diretorioBibliotecas = new File(diretorioInstalacao, "bibliotecas");
-    private final File diretorioAplicacao = new File(diretorioInstalacao, "aplicacao");
+    private final File diretorioAplicacao = resolverDiretorioAplicacao(diretorioInstalacao);
     private final File caminhoLogAtualizacoes = new File(diretorioInstalacao, "atualizacao.log");
     private final File caminhoInicializadorPortugolStudio = new File(diretorioInstalacao, "inicializador-ps.jar");
     private final File caminhoArquivosRecuperadosOriginais = new File(diretorioTemporario, "arquivos_originais.txt");
@@ -75,7 +75,8 @@ public final class Configuracoes
     private float tamanhoFonteArvore = 12.0f;
     private String temaPortugol = "Dark";
     private String icones = "Dark";
-    private boolean envio_de_dados = true;
+    // Telemetria deve ser explicitamente habilitada pelo usuário.
+    private boolean envio_de_dados = false;
     private boolean centralizarCodigoFonte = false;
     private boolean exibirAvisoVideoAulas = true;
     private boolean exibirAvisoRenomear = true;
@@ -116,7 +117,7 @@ public final class Configuracoes
             exibirOpcoesExecucao = Boolean.parseBoolean(configuracoes.getProperty(EXIBIR_OPCOES_EXECUCAO, "false"));
             tamanhoFonteConsole = Float.parseFloat(configuracoes.getProperty(TAMANHO_FONTE_CONSOLE, "12.0"));
             tamanhoFonteEditor = Float.parseFloat(configuracoes.getProperty(TAMANHO_FONTE_EDITOR, "12.0"));
-            envio_de_dados = Boolean.parseBoolean(configuracoes.getProperty(ENVIAR_DADOS, "true"));
+            envio_de_dados = Boolean.parseBoolean(configuracoes.getProperty(ENVIAR_DADOS, "false"));
             tamanhoFonteArvore = Float.parseFloat(configuracoes.getProperty(TAMANHO_FONTE_ARVORE, "12.0"));
             centralizarCodigoFonte = Boolean.parseBoolean(configuracoes.getProperty(CENTRALIZAR_CODIGO_FONTE, "false"));
             exibirAvisoVideoAulas = Boolean.parseBoolean(configuracoes.getProperty(EXIBIR_AVISO_VIDEO_AULAS, "true"));
@@ -573,6 +574,26 @@ public final class Configuracoes
         }
 
         return caminho;
+    }
+
+    /**
+     * Resolve both the legacy installer layout (aplicacao/lib) and the modern
+     * jpackage layout (Contents/app/lib). The runtime compiler needs this
+     * directory to put the Portugol core and its dependencies on javac's
+     * classpath.
+     */
+    static File resolverDiretorioAplicacao(File diretorioInstalacao)
+    {
+        File diretorioJpackage = diretorioInstalacao;
+        File jarJpackage = new File(diretorioJpackage, "portugol-studio.jar");
+        File libsJpackage = new File(diretorioJpackage, "lib");
+
+        if (jarJpackage.isFile() && libsJpackage.isDirectory())
+        {
+            return diretorioJpackage;
+        }
+
+        return new File(diretorioInstalacao, "aplicacao");
     }
 
     public File getDiretorioUsuario()

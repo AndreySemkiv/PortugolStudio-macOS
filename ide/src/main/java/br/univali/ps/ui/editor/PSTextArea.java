@@ -24,6 +24,7 @@ import org.fife.ui.rtextarea.Gutter;
 import org.fife.ui.rtextarea.GutterIconInfo;
 import org.fife.ui.rtextarea.IconRowHeader;
 import org.fife.ui.rtextarea.LineNumberList;
+import org.fife.ui.rtextarea.CaretStyle;
 import org.fife.ui.rtextarea.RTextArea;
 import org.fife.ui.rtextarea.RTextAreaUI;
 
@@ -45,6 +46,7 @@ public class PSTextArea extends RSyntaxTextArea {
 
     public PSTextArea(RSyntaxDocument doc) {
         super(doc);
+        configurarCursorDeEdicao();
         doc.addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
@@ -71,6 +73,16 @@ public class PSTextArea extends RSyntaxTextArea {
                 
             }
         });
+    }
+
+    private void configurarCursorDeEdicao()
+    {
+        // O cursor em bloco do modo de sobrescrita fica praticamente invisivel
+        // no fim da linha, pois nao ha um caractere com largura para pintar.
+        // Uma barra vertical funciona de forma consistente nos dois modos e em
+        // telas Retina.
+        setCaretStyle(RTextArea.INSERT_MODE, CaretStyle.THICK_VERTICAL_LINE_STYLE);
+        setCaretStyle(RTextArea.OVERWRITE_MODE, CaretStyle.THICK_VERTICAL_LINE_STYLE);
     }
 
     public void addListenter(PSTextAreaListener l) {

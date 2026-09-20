@@ -24,7 +24,7 @@ import javax.naming.directory.InvalidAttributeValueException;
  */
 public class Objeto {
     
-    private final HashMap objetoInterno;
+    private final HashMap<String, Object> objetoInterno;
     public static final int JSON = 1;
     public static final int XML = 2;
     
@@ -34,7 +34,7 @@ public class Objeto {
         mapper = new ObjectMapper();
     }
     
-    public Objeto(HashMap objeto){
+    public Objeto(HashMap<String, Object> objeto){
         mapper = new ObjectMapper();
         objetoInterno = objeto;
     }
@@ -51,7 +51,7 @@ public class Objeto {
                                 : criarViaJson(conteudo);
     }
     
-    private HashMap criarViaXml(String xml){
+    private HashMap<String, Object> criarViaXml(String xml){
         String json;
         XmlMapper xmlMapper = new XmlMapper();
         JsonNode node;
@@ -66,10 +66,10 @@ public class Objeto {
         return criarViaJson(json);
     }
     
-    private HashMap criarViaJson(String json) {
-        HashMap objeto;
+    private HashMap<String, Object> criarViaJson(String json) {
+        HashMap<String, Object> objeto;
         try{
-            objeto = mapper.readValue(json, new TypeReference<Map<String, Object>>(){});
+            objeto = mapper.readValue(json, new TypeReference<HashMap<String, Object>>(){});
         }catch(IOException ex){
             objeto = new HashMap();
         }

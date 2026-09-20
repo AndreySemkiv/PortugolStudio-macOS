@@ -4,7 +4,7 @@ if (!hasProperty('mainClass')) {
 
 dependencies {
     
-    compile project(':core')
+    implementation project(':portugol-core')
     // https://mvnrepository.com/artifact/org.antlr/antlr-runtime
-    compile group: 'org.antlr', name: 'antlr-runtime', version: '3.5.2'
+    implementation group: 'org.antlr', name: 'antlr-runtime', version: '3.5.3'
 }

@@ -23,7 +23,9 @@ import com.alee.laf.table.WebTableStyle;
 import com.alee.laf.text.WebPasswordFieldUI;
 import com.alee.laf.text.WebTextFieldUI;
 import com.alee.laf.toolbar.WebToolBarUI;
+import com.alee.managers.log.Log;
 import com.alee.managers.style.skin.web.WebDecorationPainter;
+import com.alee.utils.ProprietaryUtils;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
@@ -368,6 +370,10 @@ public class WeblafUtils {
 //                Logger.getLogger(WeblafUtils.class.getName()).log(Level.SEVERE, null, ex);
 //            }
             configuraWebTables();
+            // WebLaF 1.29 probes an optional Swing anti-aliasing constant that
+            // was removed from modern JDKs. It already falls back safely; avoid
+            // logging the expected NoSuchFieldException on every installation.
+            Log.disableLogging(ProprietaryUtils.class);
             StyleConstants.darkBorderColor = null;//define a cor de borda do weblaf globalmente
             WebComboBoxStyle.expandedBgColor = ColorController.COR_DESTAQUE;
             WebComboBoxStyle.webColoredBackground = false;
